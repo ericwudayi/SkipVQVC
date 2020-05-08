@@ -12,7 +12,16 @@ Implementation of SkipVQVC with variant settings. Skip connection is an powerful
   |- logger (some utlis used in tensorboard)
   |  |.
   |
-  |- trainer
+  |- trainer (differnt trainer have different properties)
+  |  |- train_normal.py
+  |  |- train_rhythm.py (split speech to rhythm fator, shoud use vqvc+_rhythm model)
+  |  |- train_mean_std.py (train with input normalized by mean and std)
+  |
+  |- model (different models like normal, speaker vae, rhythm, )
+  | |- .
+  | |- .
+  |
+  |- utils
 #  Training config
 
 - **train\_dir** is your training dir
