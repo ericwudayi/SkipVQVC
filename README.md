@@ -6,6 +6,7 @@ Implementation of SkipVQVC with variant settings. Skip connection is an powerful
 # preprocessing
 > python preprocessing.py [input_dir (VCTK/wav48)] [output_dir npy dir]
 
+```bash
 # File 
 - SkipVQVC
   |- logger (some utlis used in tensorboard)
