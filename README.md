@@ -1,29 +1,19 @@
-# vq-vc-pytorch
-Implementation of VQVC
+# SkipVQVC
+Implementation of SkipVQVC with variant settings. Skip connection is an powerful technique in deep learning. However, in auto-encoder based voice conversion(VC) domain, skip connection is often no-used. Skip-connection cause model learning too fast, and overfitting on reconstruction, and such a model cannot fullfill VC anymore. In this paper, we discuss how quantization can form a strong bottleneck that skip-connection VC can fullfilled.
 
-## Requisite
-
-* Python >= 3.6
-* numpy >= 1.17.2
-* PyTorch >= 1.1
-* librosa
-> pip3 -r requirements.txt
 ## Usage
 
-1. One-Shot convert the voice to target (training)
+# preprocessing
+> python preprocessing.py [input_dir (VCTK/wav48)] [output_dir npy dir]
 
-> python3 main.py source_wav target_wav 
+# File 
+- SkipVQVC
+  |- logger (some utlis used in tensorboard)
+  |  |.
+  |
+  |- trainer
+#  Training config
 
-2. the output melspectrogram is in mel_out/, and the wav is in wav_out/
-## Sample
-
-> python3 main.py sample/sample01/input.wav sample/sample01/target.wav
+- **train\_dir** is your training dir
 
 
-## Training
-
-1. Download VCTK dataset into data/vctk/
-
-2. python3 preprocessing.py "path_to_vctk" (example: ./data/vctk/VCTK-Corpus/wav48)
-
-3. python3 train.py

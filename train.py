@@ -16,7 +16,7 @@ from save_and_load import load_checkpoint
 parser = argparse.ArgumentParser()
 parser.add_argument('-train_dir', '--train_dir', type=str, required = True,
                     help = 'preprocessed npy files in train dir')
-parser.add_argument('-test_dir','--test_dir', type=str, required = False,
+parser.add_argument('-test_dir','--test_dir', type=str, required = False, default=None,
                     help = 'preprocessed npy files of test dir')
 parser.add_argument('-m', '--model', type=str, required= True,
                     help='model type in model dir')
@@ -53,7 +53,11 @@ audio_dir = args.train_dir#"/home/ericwudayi/nas189/homes/ericwudayi/VCTK-Corpus
 dataset = AudioNpyLoader(audio_dir)
 loader = DataLoader(dataset, batch_size=32, shuffle=True, num_workers=4,collate_fn=VCTK_collate)
 
-audio_dir_test = args.test_dir#"/home/ericwudayi/nas189/homes/ericwudayi/VCTK-Corpus/mel3/mel.test"
+if args.test_dir != None:
+    audio_dir_test = args.test_dir#"/home/ericwudayi/nas189/homes/ericwudayi/VCTK-Corpus/mel3/mel.test"
+else:
+    audio_dir_test = audio_dir
+    print ("None test dir, use train dir instead")
 dataset_test = AudioNpyLoader(audio_dir_test)
 test_loader = DataLoader(dataset_test, batch_size=8, shuffle=True, num_workers=4,collate_fn=VCTK_collate)
 inf_iterator_test = make_inf_iterator(test_loader)
