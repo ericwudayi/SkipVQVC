@@ -46,3 +46,24 @@ python train.py -train_dir /homes/aa/mel/mel.melgan -m vqvc+ -n 128 -ch 128 -t t
 ```bash
 tensorboard --logdir output/vqvc+_n128_ch128_train_normal
 ```
+
+
+## The Whole model are still in investigation to find the best parameters.
+```bash
+# if you want to recover the result in papers.
+python train.py -train_dir your-path-to-npy-dir -m vqvc+ -n 64 -ch 64 -t train_normal
+
+# if you want to train with rhythm information ( adjust rhythm )
+python train.py -train_dir your-path-to-npy-dir -m vqvc+_rhythm -n 128 -ch 128 -t train_rhythm
+
+# if you find that normal trainging is not very good for one-shot, you can train resample. It resample the quantized code which eliminate more speaker infomration from content
+
+python train.py -train_dir your-path-to-npy-dir -m vqvc+_resample -n 512 -ch 512 -t train_normal
+
+# We find that normalization on embeeding space imporve the result, you can try this
+python train.py -train_dir your-path-to-npy-dir -m vqvc+ -n 64 -ch 512 -t train_simple_normalize
+
+
+# Still in investigation...., speaker quantize <--> cav on speaker embedding
+
+```
