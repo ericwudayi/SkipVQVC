@@ -56,7 +56,8 @@ python train.py -train_dir your-path-to-npy-dir -m vqvc+ -n 64 -ch 64 -t train_n
 # if you want to train with rhythm information ( adjust rhythm )
 python train.py -train_dir your-path-to-npy-dir -m vqvc+_rhythm -n 128 -ch 128 -t train_rhythm
 
-# if you find that normal trainging is not very good for one-shot, you can train resample. It resample the quantized code which eliminate more speaker infomration from content
+# if you find that normal trainging is not very good for one-shot, you can train resample. 
+#It resample the quantized code which eliminate more speaker infomration from content
 
 python train.py -train_dir your-path-to-npy-dir -m vqvc+_resample -n 512 -ch 512 -t train_normal
 
@@ -66,4 +67,10 @@ python train.py -train_dir your-path-to-npy-dir -m vqvc+ -n 64 -ch 512 -t train_
 
 # Still in investigation...., speaker quantize <--> cav on speaker embedding
 
+```
+
+## Some details
+```bash
+All model is wrap by vq_model(), details can be seen in model/vqvc*
+All trainer is wrap by train_() , details can be seen in trainer/train*
 ```
