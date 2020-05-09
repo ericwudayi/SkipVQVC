@@ -71,8 +71,8 @@ Training
 '''
 criterion = nn.L1Loss()
 latent_loss_weight = 0.1
-
+iteration = 0
 if args.load_checkpoint==True:
-    model, opt, iteration = load_checkpoint(f'checkpoint/{args.model}_n{args.n_embed}_ch{args.channel}/gen', model, opt)       
+    model, opt, iteration = load_checkpoint(f'checkpoint/{args.model}_n{args.n_embed}_ch{args.channel}_{args.trainer}/gen', model, opt)       
 
-train_(args, model, opt, latent_loss_weight, criterion, loader, 800, inf_iterator_test, logger)
+train_(args, model, opt, latent_loss_weight, criterion, loader, 800, inf_iterator_test, logger, iteration)

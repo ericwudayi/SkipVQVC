@@ -15,8 +15,8 @@ from save_and_load import save_checkpoint, load_checkpoint
 
 vocoder = torch.hub.load('descriptinc/melgan-neurips', 'load_melgan')
 
-def train_(args, model, opt, latent_loss_weight, criterion, loader, epochs, inf_iterator_test, logger):
-    iteration = 0
+def train_(args, model, opt, latent_loss_weight, criterion, loader, epochs, inf_iterator_test, logger, iteration):
+    
     for epoch in range(epochs):
         mse_sum = 0
         mse_n = 0
@@ -37,7 +37,7 @@ def train_(args, model, opt, latent_loss_weight, criterion, loader, epochs, inf_
                 logger.log_training(iteration = iteration,  loss_recon = recon_loss, latent_loss = latent_loss)
 
 
-            if i % 100 == 0 :
+            if i % 200 == 0 :
                 model.eval()
 
                 audio = next(inf_iterator_test)

@@ -174,6 +174,22 @@ class VC_MODEL(nn.Module):
         
         return dec_1
 
+class RCBlock(nn.Module):
+    def __init__(self, feat_dim, ks, dilation, num_groups):
+        super().__init__()
+        # ks = 3  # kernel size
+        ksm1 = ks-1
+        mfd = feat_dim
+        di = dilation
+        self.num_groups = num_groups
+
+        self.relu = nn.LeakyReLU()
+
+        self.rec = nn.GRU(mfd, mfd, num_layers=1, batch_first=True, bidirectional=True)
+        self.conv = nn.Conv1d(mfd, mfd, ks, 1, ksm1*di//2, dilation=di, groups=num_groups)
+        self.gn = nn.GroupNorm(num_groups, mfd)
+
+
 class GBlock(nn.Module):
     def __init__(self, input_dim, output_dim, middle_dim, num_groups):
         super().__init__()
@@ -191,6 +207,7 @@ class GBlock(nn.Module):
             nn.Conv1d(input_dim, mfd, 3, 1, 1),
             nn.GroupNorm(num_groups, mfd),
             nn.LeakyReLU(),
+            RCBlock(mfd, ks, dilation=1, num_groups=num_groups),
             nn.Conv1d(mfd, output_dim, 3, 1, 1),
             
         ]

@@ -98,19 +98,24 @@ class VC_MODEL(nn.Module):
         self.enc = nn.ModuleList(blocks)
         
         quantize_blocks = []
-        
+        quantize_speakers = []
         for i in range(3):
             quantize_blocks += [
             Quantize(in_channel//2**(i+1), n_embed//2**(2-i))]
         self.quantize = nn.ModuleList(quantize_blocks)
-        
+        for i in range(3):
+            quantize_speakers += [
+            Quantize(in_channel//2**(i+1), n_embed//2**(2-i))]
+        self.quantize = nn.ModuleList(quantize_blocks)
+        self.quantize_speakers = nn.ModuleList(quantize_speakers)
         
         self.dec = Decoder(
-            in_channel ,
-            channel
+            in_channel,
+            channel,
         )
     def forward(self, input):
         enc_b, sp_embed, std_block, diff = self.encode(input)
+        
         dec_1= self.decode(enc_b, sp_embed, std_block)
         idx = torch.randperm(enc_b[0].size(0))
         sp_shuffle = []
@@ -131,8 +136,9 @@ class VC_MODEL(nn.Module):
         diff_total = 0
 
 
-        for i, (enc_block, quant) in enumerate(zip(self.enc, self.quantize)):
+        for i, (enc_block, quant, quantize_sp) in enumerate(zip(self.enc, self.quantize, self.quantize_speakers)):
             x = enc_block(x)   
+            
             x_ = x - torch.mean(x, dim = 2, keepdim = True)
             std_ = torch.norm(x_, dim= 2, keepdim = True) + 1e-4
             std_block += [std_]
@@ -145,6 +151,47 @@ class VC_MODEL(nn.Module):
             sp_embed = torch.mean(x - q_after, 2, True)
             sp_embed = sp_embed / (torch.norm(sp_embed, dim = 1, keepdim=True)+1e-4) /3
 
+            sp_embed, diff_speaker = quantize_sp(sp_embed.permute(0,2,1))
+            sp_embed = sp_embed.permute(0,2,1)
+
+            q_after = self.resample(q_after)
+            sp_embedding_block += [sp_embed]
+            q_after_block += [q_after]
+            diff_total += diff
+            diff_total += diff_speaker
+        return q_after_block, sp_embedding_block, std_block, diff_total
+
+
+    def resample(self, input):
+        input = F.interpolate(input, scale_factor=1/4, mode='linear')
+        input = F.interpolate(input, scale_factor=4, mode='nearest')
+
+        return input
+    
+    def encode(self, input):
+        x = input
+        sp_embedding_block = []
+        q_after_block = []
+        std_block = []
+        diff_total = 0
+
+
+        for i, (enc_block, quant) in enumerate(zip(self.enc, self.quantize)):
+            x = enc_block(x)   
+            
+            x_ = x - torch.mean(x, dim = 2, keepdim = True)
+            std_ = torch.norm(x_, dim= 2, keepdim = True) + 1e-4
+            std_block += [std_]
+            x_ = x_ / std_
+
+            x_ = x_ / torch.norm(x_, dim = 1, keepdim = True)
+            q_after, diff = quant(x_.permute(0,2,1))
+            q_after = q_after.permute(0,2,1)
+            
+            sp_embed = torch.mean(x_ - q_after, 2, True)
+            sp_embed = sp_embed / (torch.norm(sp_embed, dim = 1, keepdim=True)+1e-4) /3
+
+            q_after = self.resample(q_after)
             sp_embedding_block += [sp_embed]
             q_after_block += [q_after]
             diff_total += diff

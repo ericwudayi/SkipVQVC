@@ -70,7 +70,7 @@ class Decoder(nn.Module):
         x = 0
 
         for i, (block, block_refine, res, scale_factor) in enumerate(zip(self.blocks, self.blocks_refine, self.resblock, self.z_scale_factors)):
-            x = x + res(q_after[i]*sp_embed[i] + sp_embed[i])
+            x = x + res(q_after[i] + sp_embed[i])
             x = F.interpolate(x, scale_factor=scale_factor, mode='nearest')
             x = x + block(x)
             x = torch.cat([x, x + block_refine(x)], dim = 1)
@@ -107,17 +107,13 @@ class VC_MODEL(nn.Module):
         
         for i in range(3):
             quantize_speakers += [
-            Quantize(in_channel//2**(i+1), 8**i)]
+            Quantize(in_channel//2**(i+1), 2*n_embed//2**(2-i))]
         self.quantize = nn.ModuleList(quantize_blocks)
         self.quantize_speakers = nn.ModuleList(quantize_speakers)
         
         self.dec = Decoder(
-            in_channel ,
             in_channel,
-            channel,
-            n_res_block,
-            n_res_channel,
-            stride=8,
+            channel
         )
     def forward(self, input):
         enc_b, sp_embed, std_block, diff = self.encode(input)
@@ -178,6 +174,41 @@ class VC_MODEL(nn.Module):
         
         return dec_1
 
+class RCBlock(nn.Module):
+    def __init__(self, feat_dim, ks, dilation, num_groups):
+        super().__init__()
+        # ks = 3  # kernel size
+        ksm1 = ks-1
+        mfd = feat_dim
+        di = dilation
+        self.num_groups = num_groups
+
+        self.relu = nn.LeakyReLU()
+
+        self.rec = nn.GRU(mfd, mfd, num_layers=1, batch_first=True, bidirectional=True)
+        self.conv = nn.Conv1d(mfd, mfd, ks, 1, ksm1*di//2, dilation=di, groups=num_groups)
+        self.gn = nn.GroupNorm(num_groups, mfd)
+
+    def init_hidden(self, batch_size, hidden_size):
+        num_layers = 1
+        num_directions = 2
+        hidden = torch.zeros(num_layers*num_directions, batch_size, hidden_size)
+        hidden.normal_(0, 1)
+        return hidden
+
+    def forward(self, x):
+        bs, mfd, nf = x.size()
+
+        hidden = self.init_hidden(bs, mfd).to(x.device)
+
+        r = x.transpose(1, 2)
+        r, _ = self.rec(r, hidden)
+        r = r.transpose(1, 2).view(bs, 2, mfd, nf).sum(1)
+        c = self.relu(self.gn(self.conv(r)))
+        x = x+r+c
+
+        return x
+
 class GBlock(nn.Module):
     def __init__(self, input_dim, output_dim, middle_dim, num_groups):
         super().__init__()
@@ -195,6 +226,7 @@ class GBlock(nn.Module):
             nn.Conv1d(input_dim, mfd, 3, 1, 1),
             nn.GroupNorm(num_groups, mfd),
             nn.LeakyReLU(),
+            RCBlock(mfd, ks, dilation=1, num_groups=num_groups),
             nn.Conv1d(mfd, output_dim, 3, 1, 1),
             
         ]

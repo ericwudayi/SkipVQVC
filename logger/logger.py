@@ -5,9 +5,9 @@ class Logger(SummaryWriter):
     def __init__(self, logdir):
         super(Logger, self).__init__(logdir)
 
-    def log_training(self, iteration, **kwarg):
-        self.add_scalars("training.loss", kwarg , iteration)
-    
+    def log_training(self, iteration,figure = "training.loss", **kwarg):
+        self.add_scalars(figure, kwarg , iteration)
+        
     def log_validation(self, iteration, **kwarg):
         for key in (kwarg.keys()):
             (type_, method_, data) = kwarg[key]

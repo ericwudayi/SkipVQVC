@@ -15,12 +15,6 @@ from save_and_load import save_checkpoint, load_checkpoint
 
 vocoder = torch.hub.load('descriptinc/melgan-neurips', 'load_melgan')
 
-base_dir = "/home/ericwudayi/nas189/homes/ericwudayi/VCTK-Corpus/mel3/"
-mean_fp = os.path.join(base_dir, f'mean.mel.melgan.npy')
-std_fp = os.path.join(base_dir, f'std.mel.melgan.npy')
-mean = torch.from_numpy(np.load(mean_fp)).float().cuda().view(1, 80, 1)
-std = torch.from_numpy(np.load(std_fp)).float().cuda().view(1, 80, 1)
-
 def train_(args, model, opt, latent_loss_weight, criterion, loader, epochs, inf_iterator_test, logger, iteration):
     
     for epoch in range(epochs):
@@ -30,7 +24,7 @@ def train_(args, model, opt, latent_loss_weight, criterion, loader, epochs, inf_
         for i, audio in enumerate(loader):
             cluster_size = audio.size(1)
             audio = audio.cuda()
-            audio = (audio - mean)/std/3
+            audio = (audio*25 + 50) / 50
             out, out_conversion, enc_content, spk, latent_loss, idx = model(audio)
             recon_loss = criterion(out, audio)
             latent_loss = latent_loss.mean()  
@@ -39,23 +33,22 @@ def train_(args, model, opt, latent_loss_weight, criterion, loader, epochs, inf_
 
             mse_sum += recon_loss.item() * audio.shape[0]
             mse_n += audio.shape[0]
-            if i% 5 == 0 :
-                logger.log_training(iteration = iteration,  loss_recon = recon_loss, latent_loss = latent_loss)
-
 
             if i % 200 == 0 :
+                logger.log_training(iteration = iteration,  loss_recon = recon_loss, latent_loss = latent_loss)
+
                 model.eval()
 
                 audio = next(inf_iterator_test)
                 audio = audio.cuda()
+                audio = (audio*25 + 50) / 50
                 
-                audio = (audio - mean)/std/3
                 
                 
                 out, out_conversion, enc_content, spk, latent_loss, idx = model(audio)
                 a = torch.stack([audio[0], audio[idx[0]], out[0], out_conversion[0]], dim = 0)
                 
-                a = a*std*3 + mean
+                a = (a*50 - 50)/25
                 a = vocoder.inverse(a)
                 a = a.detach().cpu().numpy()
                 logger.log_validation(iteration = iteration,

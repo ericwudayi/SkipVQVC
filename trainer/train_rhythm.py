@@ -22,8 +22,8 @@ std_fp = os.path.join(base_dir, f'std.mel.melgan.npy')
 mean = torch.from_numpy(np.load(mean_fp)).float().cuda().view(1, 80, 1)
 std = torch.from_numpy(np.load(std_fp)).float().cuda().view(1, 80, 1)
 
-def train_(args, model, opt, latent_loss_weight, criterion, loader, epochs, inf_iterator_test, logger):
-    iteration = 0
+def train_(args, model, opt, latent_loss_weight, criterion, loader, epochs, inf_iterator_test, logger, iteration):
+    
     for epoch in range(epochs):
         factor = 32
         for i, audio in enumerate(loader):
