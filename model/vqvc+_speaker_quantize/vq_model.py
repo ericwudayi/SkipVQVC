@@ -86,8 +86,6 @@ class VC_MODEL(nn.Module):
     ):
         super().__init__()
 
-        super().__init__()
-
         blocks = []
         for i in range(3):
             blocks += [
@@ -107,7 +105,7 @@ class VC_MODEL(nn.Module):
         
         for i in range(3):
             quantize_speakers += [
-            Quantize(in_channel//2**(i+1), 2*n_embed//2**(2-i))]
+            Quantize(in_channel//2**(i+1), 2048)]
         self.quantize = nn.ModuleList(quantize_blocks)
         self.quantize_speakers = nn.ModuleList(quantize_speakers)
         
@@ -151,11 +149,10 @@ class VC_MODEL(nn.Module):
             q_after = q_after.permute(0,2,1)
             
             sp_embed = torch.mean(x - q_after, 2, True)
-            sp_embed = sp_embed / (torch.norm(sp_embed, dim = 1, keepdim=True)+1e-4) /3
-
+            sp_embed = sp_embed / (torch.norm(sp_embed, dim = 1, keepdim=True)+1e-4)
             sp_embed, diff_speaker = quantize_sp(sp_embed.permute(0,2,1))
             sp_embed = sp_embed.permute(0,2,1)
-
+            sp_embed = sp_embed / 3
             sp_embedding_block += [sp_embed]
             q_after_block += [q_after]
             diff_total += diff

@@ -19,6 +19,8 @@ parser.add_argument('-train_dir', '--train_dir', type=str, required = True,
                     help = 'preprocessed npy files in train dir')
 parser.add_argument('-test_dir','--test_dir', type=str, required = False, default=None,
                     help = 'preprocessed npy files of test dir')
+parser.add_argument('-enc_dir','--enc_dir', type=str, required = False, default=None,
+                    help = 'preprocessed encoded npy files of dir')
 parser.add_argument('-m', '--model', type=str, required= True,
                     help='model type in model dir')
 parser.add_argument('-n', '--n_embed', type=str,required= True,
@@ -49,10 +51,15 @@ def make_inf_iterator(data_iterator):
         for data in data_iterator:
             yield data
 
-audio_dir = args.train_dir#"/home/ericwudayi/nas189/homes/ericwudayi/VCTK-Corpus/mel3/mel.melgan"
+audio_dir = args.train_dir
+audio_enc_dir = args.enc_dir
 
 dataset = AudioNpyLoader(audio_dir)
 loader = DataLoader(dataset, batch_size=8, shuffle=True, num_workers=8,collate_fn=VCTK_collate)
+
+enc_dataset = AudioNpyLoader(audio_enc_dir)
+enc_loader = DataLoader(enc_dataset, batch_size=8, shuffle=True, num_workers=8,collate_fn=VCTK_collate)
+inf_iterator_enc = make_inf_iterator(enc_loader)
 
 if args.test_dir != None:
     audio_dir_test = args.test_dir#"/home/ericwudayi/nas189/homes/ericwudayi/VCTK-Corpus/mel3/mel.test"
@@ -60,7 +67,7 @@ else:
     audio_dir_test = audio_dir
     print ("None test dir, use train dir instead")
 dataset_test = AudioNpyLoader(audio_dir_test)
-test_loader = DataLoader(dataset_test, batch_size=8, shuffle=True, num_workers=4,collate_fn=VCTK_collate)
+test_loader = DataLoader(dataset_test, batch_size=1, shuffle=True, num_workers=1,collate_fn=VCTK_collate)
 inf_iterator_test = make_inf_iterator(test_loader)
 '''
 Model Initilization
@@ -77,4 +84,4 @@ if args.load_checkpoint==True:
     model, opt, iteration = load_checkpoint(f'checkpoint/{args.model}_n{args.n_embed}_ch{args.channel}_{args.trainer}/gen', model, opt)       
 
 
-train_(args, model, opt, latent_loss_weight, criterion, loader, 800, inf_iterator_test, logger, iteration)
+train_(args, model, opt, latent_loss_weight, criterion, loader, 800, inf_iterator_test, logger, iteration, inf_iterator_enc)

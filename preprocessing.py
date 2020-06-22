@@ -92,6 +92,8 @@ def process_audios(path):
     try:
         m = convert_file(path)
         print (m.shape)
+        if m.shape[1]<100:
+            return id, 0
         #scaler.partial_fit(m.T)
         #print(scaler.mean_)
         np.save(out_fp, m, allow_pickle=False)
@@ -108,7 +110,7 @@ if __name__ == "__main__":
     
 
     feat_type = 'mel.melgan'
-    extension = '.wav'
+    extension = '.mp3'
     peak_norm = False
 
     n_fft = 1024
@@ -119,6 +121,13 @@ if __name__ == "__main__":
     extract_func = Audio2Mel(n_fft, hop_length, win_length, sampling_rate, n_mel_channels)
     sr = sampling_rate
 
+    audio_files = []
+    for dirPath, dirNames, fileNames in os.walk(f"{audio_dir}"):
+        #print (dirPath)
+        for f in fileNames:
+            if f.endswith(extension):
+                audio_files += [os.path.join(dirPath, f)]
+    '''
     audio_fns = os.listdir(audio_dir)
     
     audio_files = [os.path.join(audio_dir, fn) for fn in audio_fns]
@@ -129,8 +138,8 @@ if __name__ == "__main__":
             fnn = os.path.join(fn,fnn)
             audio_filess += [fnn]
     audio_files = audio_filess
+    '''
     print (audio_files[:5])
-    scaler = StandardScaler()
     
     if len(audio_files) == 0:
 
@@ -156,25 +165,5 @@ if __name__ == "__main__":
 
         base_in_dir = os.path.join(base_dir, feat_type)
 
-        out_fp_mean = os.path.join(base_dir, f'mean.{feat_type}.npy')
-        out_fp_std = os.path.join(base_dir, f'std.{feat_type}.npy')
-        
-        in_fns = [fn for fn in os.listdir(base_in_dir)]
-
-        scaler = StandardScaler()
-
-        for fn in in_fns:
-            print(fn)
-            in_fp = os.path.join(base_in_dir, f'{fn}')
-            # shape=(num_frames, feat_dim)
-            data = np.load(in_fp).T
-
-            scaler.partial_fit(data)
-
-        mean = scaler.mean_
-        std = scaler.scale_
-
-        np.save(out_fp_mean, mean)
-        np.save(out_fp_std, std)
         
         print('\n\nCompleted. ')

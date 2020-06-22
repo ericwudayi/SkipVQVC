@@ -56,7 +56,7 @@ class Decoder(nn.Module):
         for i in range(1,4,1):
             block = GBlock(in_channel//2**(i), in_channel//2**(i), channel, num_groups)
             resblock += [block]
-    
+        
         self.blocks = nn.ModuleList(blocks[::-1])
         self.blocks_refine = nn.ModuleList(blocks_refine[::-1])
         self.resblock = nn.ModuleList(resblock[::-1])
@@ -68,16 +68,18 @@ class Decoder(nn.Module):
         sp_embed = sp_embed[::-1]
         std_embed = std_embed[::-1]
         rhythm_embed = rhythm_embed[::-1]
+        output = []
         x = 0
         for i, (block, block_refine, res, scale_factor) in enumerate(zip(self.blocks, self.blocks_refine, self.resblock, self.z_scale_factors)):
-            if i ==0:
+            if i==0:
                 x = x + res(q_after[i]*std_embed[i] + sp_embed[i] +rhythm_embed[i])
             else:
                 x = x + res(q_after[i]*std_embed[i] + sp_embed[i])
             x = F.interpolate(x, scale_factor=scale_factor, mode='nearest')
             x = x + block(x)
-            x = torch.cat([x, x + block_refine(x)], dim = 1)
-        return x
+            x = torch.cat([x, block_refine(x)], dim = 1)
+            output += [x]
+        return output
 
 
 class VC_MODEL(nn.Module):
@@ -104,7 +106,7 @@ class VC_MODEL(nn.Module):
         
         for i in range(3):
             quantize_blocks += [
-            Quantize(in_channel//2**(i+1), n_embed)]
+            Quantize(in_channel//2**(i+1), n_embed//2**(2-i))]
         self.quantize = nn.ModuleList(quantize_blocks)
         
         
@@ -134,14 +136,14 @@ class VC_MODEL(nn.Module):
         
         
         return dec_1, dec_2, enc_b, sp_embed, diff, idx
-    
+
     def encode(self, input_rhy, input):
         x = input
         x_rhy = input_rhy
         sp_embedding_block = []
         q_after_block = []
-        rhythm_block = []
         std_block = []
+        rhythm_block = []
         diff_total = 0
 
 
@@ -171,6 +173,7 @@ class VC_MODEL(nn.Module):
         
         return q_after_block, sp_embedding_block, std_block, rhythm_block, diff_total 
 
+
     def decode(self, quant_b, sp, std, rhy):
         
         dec_1 = self.dec(quant_b, sp, std, rhy)
@@ -191,6 +194,26 @@ class RCBlock(nn.Module):
         self.rec = nn.GRU(mfd, mfd, num_layers=1, batch_first=True, bidirectional=True)
         self.conv = nn.Conv1d(mfd, mfd, ks, 1, ksm1*di//2, dilation=di, groups=num_groups)
         self.gn = nn.GroupNorm(num_groups, mfd)
+
+    def init_hidden(self, batch_size, hidden_size):
+        num_layers = 1
+        num_directions = 2
+        hidden = torch.zeros(num_layers*num_directions, batch_size, hidden_size)
+        hidden.normal_(0, 1)
+        return hidden
+
+    def forward(self, x):
+        bs, mfd, nf = x.size()
+
+        hidden = self.init_hidden(bs, mfd).to(x.device)
+
+        r = x.transpose(1, 2)
+        r, _ = self.rec(r, hidden)
+        r = r.transpose(1, 2).view(bs, 2, mfd, nf).sum(1)
+        c = self.relu(self.gn(self.conv(r)))
+        x = x+r+c
+
+        return x
 
 
 class GBlock(nn.Module):

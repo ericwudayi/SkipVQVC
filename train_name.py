@@ -4,7 +4,7 @@ import argparse
 import torch
 from torch import nn, optim
 from torch.utils.data import DataLoader
-from utils.dataloader import AudioNpyLoader, VCTK_collate
+from utils.dataloader import AudioNpyNameLoader, VCTK_NAME_collate
 
 sys.path.append('logger')
 from logger import Logger
@@ -12,7 +12,7 @@ from logger_utils import prepare_directories_and_logger
 
 sys.path.append('utils')
 from save_and_load import save_checkpoint, load_checkpoint
-sys.path.append('loss')
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-train_dir', '--train_dir', type=str, required = True,
@@ -51,16 +51,16 @@ def make_inf_iterator(data_iterator):
 
 audio_dir = args.train_dir#"/home/ericwudayi/nas189/homes/ericwudayi/VCTK-Corpus/mel3/mel.melgan"
 
-dataset = AudioNpyLoader(audio_dir)
-loader = DataLoader(dataset, batch_size=8, shuffle=True, num_workers=8,collate_fn=VCTK_collate)
+dataset = AudioNpyNameLoader(audio_dir)
+loader = DataLoader(dataset, batch_size=16, shuffle=True, num_workers=8,collate_fn=VCTK_NAME_collate)
 
 if args.test_dir != None:
     audio_dir_test = args.test_dir#"/home/ericwudayi/nas189/homes/ericwudayi/VCTK-Corpus/mel3/mel.test"
 else:
     audio_dir_test = audio_dir
     print ("None test dir, use train dir instead")
-dataset_test = AudioNpyLoader(audio_dir_test)
-test_loader = DataLoader(dataset_test, batch_size=8, shuffle=True, num_workers=4,collate_fn=VCTK_collate)
+dataset_test = AudioNpyNameLoader(audio_dir_test)
+test_loader = DataLoader(dataset_test, batch_size=8, shuffle=True, num_workers=4,collate_fn=VCTK_NAME_collate)
 inf_iterator_test = make_inf_iterator(test_loader)
 '''
 Model Initilization
